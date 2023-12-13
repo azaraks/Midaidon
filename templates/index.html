@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitHub Issue Creator</title>
+</head>
+<body>
+<h1>Upload File to Create GitHub Issues</h1>
+<form id="issueForm" enctype="multipart/form-data">
+    <input name="repo" type="text" placeholder="Enter repository" required/>
+    <input name="file" type="file" required/>
+    <input type="submit" value="Upload"/>
+</form>
+<br>
+<div id="log"></div>
+<script>
+    document.getElementById('issueForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const formData = new FormData(this);
+        fetch('/upload/', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+    });
+
+    let lastLogIndex = -1;
+
+    function connect() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.host;
+        const wsUrl = `${wsProtocol}//${wsHost}/logs`;
+
+        const socket = new WebSocket(wsUrl);
+
+        socket.onmessage = function (event) {
+            const logElement = document.createElement("div");
+            logElement.innerText = event.data;
+            document.getElementById('log').appendChild(logElement);
+        };
+
+        socket.onerror = function (event) {
+            console.error("WebSocket error:", event);
+        };
+
+        socket.onclose = function (event) {
+            console.log("WebSocket is closed now. Reconnecting...");
+            setTimeout(connect, 1000);
+        };
+    }
+
+    connect();
+</script>
+</body>
+</html>
